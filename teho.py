@@ -61,13 +61,17 @@ def mqttsend():
     global power, counter
     teho = round(power, 3)
     client =mqtt.Client("ledteho")
-    client.connect("192.168.1.13")
-    client.publish("homeassistant/sensor/teho/state",teho)
-    print("mqtt power sent")
-    client.publish("homeassistant/sensor/tehocounter/state",counter)
-    print("mqtt counter sent")
-    time.sleep(1)
-    client.disconnect()
+    try:
+      client.connect("192.168.1.13")
+      client.publish("homeassistant/sensor/teho/state",teho)
+      print("mqtt power sent")
+      client.publish("homeassistant/sensor/tehocounter/state",counter)
+      print("mqtt counter sent")
+      client.loop(2)
+      client.disconnect()
+      client.loop(2)
+    except:
+      print("conn. error")
 
 # laskurin alustus
 
