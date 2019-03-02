@@ -2,6 +2,8 @@
 import RPi.GPIO as GPIO
 import time
 import os
+import paho.mqtt.client as mqtt
+
 GPIO.setmode(GPIO.BCM)
 
 # Global variables
@@ -54,6 +56,19 @@ def writetofile():
     with open(counterfile, "w") as f:
         f.write(str(counter))
 
+# MQTT-lähetys
+def mqttsend():
+    global power, counter
+    teho = round(power, 3)
+    client =mqtt.Client("ledteho")
+    client.connect("192.168.1.13")
+    client.publish("homeassistant/sensor/teho/state",teho)
+    print("mqtt power sent")
+    client.publish("homeassistant/sensor/tehocounter/state",counter)
+    print("mqtt counter sent")
+    time.sleep(1)
+    client.disconnect()
+
 # laskurin alustus
 
 exists = os.path.isfile(counterfile)
@@ -79,7 +94,9 @@ print ("Use ctrl+z to interrupt")
 try:
     while True:
         time.sleep(10)
-        writetofile()
+# uncomment to enable writing to files
+#        writetofile()
+        mqttsend()
 
 except KeyboardInterrupt:
     GPIO.cleanup()       # clean up GPIO on CTRL+C exit
