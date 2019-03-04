@@ -1,36 +1,46 @@
 #!/usr/bin/env python3
+import configparser
 import RPi.GPIO as GPIO
 import time
 import os
 import paho.mqtt.client as mqtt
 
+# initialize config
+config = configparser.ConfigParser()
+config.read("ledteho.conf")
+#read variables from config
+ledpin = config.getint('general', 'gpio')
+meter_constant = config.getint('general', 'meter_constant')
+powercap = config.getint('general', 'powercap')
+sleeptime = config.getint('general', 'interval')
+decimals = config.getint('general', 'decimals')
+tehofile = config.get("files", "powerfile")
+counterfile = config.get("files", "counterfile")
+mqttaddress = config.get("mqtt", "address")
+
 GPIO.setmode(GPIO.BCM)
 
 # Global variables
-global lastSignal, lastTime, power, difference, powercap, counter
+global lastSignal, lastTime, power, difference, counter
 lastSignal = False
 lastTime = time.time()
 power = 0
-powercap = 100
 difference = 0
 
 # files
-tehofile = "/ramdisk/teho.txt"
-counterfile = "/ramdisk/tehocounter.txt"
 
-# GPIO 26 set up as input, pulled down to avoid false detection.
-# GPIO 26 connected to automationPhat input 1
+# GPIO [ledpin] set up as input, pulled down to avoid false detection.
+# GPIO [ledpin] connected to automationPhat input 1
 # automation phat input 1 connected to LDR with a paraller resistor
-# of ~40 kohm
-GPIO.setup(26, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+# of ~40 kohm. Or you can use for exaple pre-built arduino LDR-module.
+GPIO.setup(ledpin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 # routine to calculate power and increase energy counter when pulse
 # is detected
 def pulsecallback(channel):
     global lastSignal, lastTime, power, difference, counter
     seconds_in_an_hour = 3600
-    meter_constant = 1000
-    print ("falling edge detected on 26")
+    print ("falling edge detected on", ledpin)
     newTime = time.time()
     difference = newTime - lastTime
     power = seconds_in_an_hour / (difference * meter_constant)
@@ -46,7 +56,7 @@ def writetofile():
     global power, counter
     global tehofile, counterfile
 
-    teho = round(power, 3)
+    teho = round(power, decimals)
 
     print ("writing...")
 
@@ -59,10 +69,10 @@ def writetofile():
 # MQTT-sending
 def mqttsend():
     global power, counter
-    teho = round(power, 3)
+    teho = round(power, decimals)
     client =mqtt.Client("ledteho")
     try:
-      client.connect("192.168.1.13")
+      client.connect(mqttaddress)
       client.publish("homeassistant/sensor/teho/state",teho)
       print("mqtt power sent")
       client.publish("homeassistant/sensor/tehocounter/state",counter)
@@ -83,22 +93,22 @@ if exists:
 else:
     counter = 0
 
-# when a falling edge is detected on port 26,
+# when a falling edge is detected on port [ledpin],
 # the function pulsecallback will be run
 # try adjusting bouncetime if you get ghost signals
 # also try adjusting paraller/series resistor and reading
 # input status with 
 # $ GPIO READALL
-GPIO.add_event_detect(26, GPIO.FALLING, callback=pulsecallback, bouncetime=300)
+GPIO.add_event_detect(ledpin, GPIO.FALLING, callback=pulsecallback, bouncetime=300)
 
 # main program loop.
 # call mqtt sending and optinally writing to file at interval configured
 # in sleep function
-print ("waiting for pulses in GPIO 26")
+print ("waiting for pulses in GPIO", ledpin)
 print ("Use ctrl+c to interrupt")
 try:
     while True:
-        time.sleep(10)
+        time.sleep(sleeptime)
 # uncomment to enable writing to files
 #        writetofile()
         mqttsend()
