@@ -11,3 +11,4 @@ Example fstab line for ramdisk:
 
 ## Todo
 - Add configurable averaging function
+- Make config handling better
