@@ -1,0 +1,11 @@
+[general]
+gpio = 26
+meter_constant = 1000
+powercap = 99
+interval = 10
+decimals = 3
+[files]
+powerfile = /ramdisk/teho.txt
+counterfile = /ramdisk/tehocounter.txt
+[mqtt]
+address = 192.168.1.1
