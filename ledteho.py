@@ -40,7 +40,7 @@ def pulsecallback(channel):
     counter = int(counter) + 1
     print (counter)
 
-# routine to write stuff to file 
+# routine to write stuff to file
 # called in main loop on regular basis!
 def writetofile():
     global power, counter
@@ -56,7 +56,7 @@ def writetofile():
     with open(counterfile, "w") as f:
         f.write(str(counter))
 
-# MQTT-lähetys
+# MQTT-sending
 def mqttsend():
     global power, counter
     teho = round(power, 3)
@@ -73,7 +73,7 @@ def mqttsend():
     except:
       print("conn. error")
 
-# laskurin alustus
+# counter initialization
 
 exists = os.path.isfile(counterfile)
 
@@ -92,9 +92,10 @@ else:
 GPIO.add_event_detect(26, GPIO.FALLING, callback=pulsecallback, bouncetime=300)
 
 # main program loop.
-# does nothing but sleeps all day
+# call mqtt sending and optinally writing to file at interval configured
+# in sleep function
 print ("waiting for pulses in GPIO 26")
-print ("Use ctrl+z to interrupt")
+print ("Use ctrl+c to interrupt")
 try:
     while True:
         time.sleep(10)
