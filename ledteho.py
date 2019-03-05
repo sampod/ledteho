@@ -17,6 +17,8 @@ decimals = config.getint('general', 'decimals')
 tehofile = config.get("files", "powerfile")
 counterfile = config.get("files", "counterfile")
 mqttaddress = config.get("mqtt", "address")
+mqtttopic1 = config.get("mqtt", "ledtehotopic")
+mqtttopic2 = config.get("mqtt", "ledtehocountertopic")
 
 GPIO.setmode(GPIO.BCM)
 
@@ -73,9 +75,9 @@ def mqttsend():
     client =mqtt.Client("ledteho")
     try:
       client.connect(mqttaddress)
-      client.publish("homeassistant/sensor/teho/state",teho)
+      client.publish(mqtttopic1,teho)
       print("mqtt power sent")
-      client.publish("homeassistant/sensor/tehocounter/state",counter)
+      client.publish(mqtttopic2,counter)
       print("mqtt counter sent")
       client.loop(2)
       client.disconnect()
