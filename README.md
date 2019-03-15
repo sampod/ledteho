@@ -11,7 +11,7 @@ Example fstab line for ramdisk:
 `tmpfs       /ramdisk tmpfs  defaults,size=20M,gid=33   0 0`
 
 ## Todo
-- Add configurable averaging function
+- Improve averaging function
 - Make config handling better
 
 ## inspired by
