@@ -2,7 +2,7 @@
 A small python script to calculate power and energy from a pulsing 
 led on your elecricity meter. Sends measurement data by MQTT allowing easy integration
 to a system supporting MQTT such as [Home Assistant](https://www.home-assistant.io/).
-Optionally writes status data to /ramdisk.
+Optionally writes status data to files.
 You can change the save location by modifying the config file to
 your needs.
 
