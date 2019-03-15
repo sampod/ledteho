@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import configparser
 import RPi.GPIO as GPIO
+import statistics
 import time
 import os
 import paho.mqtt.client as mqtt
@@ -19,6 +20,7 @@ counterfile = config.get("files", "counterfile")
 mqttaddress = config.get("mqtt", "address")
 mqtttopic1 = config.get("mqtt", "ledtehotopic")
 mqtttopic2 = config.get("mqtt", "ledtehocountertopic")
+mqtttopic1m = config.get("mqtt", "ledtehomediantopic")
 
 GPIO.setmode(GPIO.BCM)
 
@@ -27,6 +29,7 @@ global lastSignal, lastTime, power, difference, counter
 lastSignal = False
 lastTime = time.time()
 power = 0
+powerlist = []
 difference = 0
 
 # files
@@ -40,12 +43,13 @@ GPIO.setup(ledpin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 # routine to calculate power and increase energy counter when pulse
 # is detected
 def pulsecallback(channel):
-    global lastSignal, lastTime, power, difference, counter
+    global lastSignal, lastTime, power, powerlist, difference, counter
     seconds_in_an_hour = 3600
     print ("falling edge detected on", ledpin)
     newTime = time.time()
     difference = newTime - lastTime
     power = seconds_in_an_hour / (difference * meter_constant)
+    powerlist.append(power)
     if power > powercap: power = ""
     lastTime = newTime
     print (power, difference)
@@ -70,13 +74,21 @@ def writetofile():
 
 # MQTT-sending
 def mqttsend():
-    global power, counter
+    global power, powerlist, counter
     teho = round(power, decimals)
+    if len(powerlist) > 0:
+      tehomedian = round(statistics.median(powerlist), decimals)
+    else:
+      tehomedian = 0
+    powerlist = []
     client =mqtt.Client("ledteho")
+    print (tehomedian)
     try:
       client.connect(mqttaddress)
       client.publish(mqtttopic1,teho)
       print("mqtt power sent")
+      client.publish(mqtttopic1m,tehomedian)
+      print("mqtt median power sent")
       client.publish(mqtttopic2,counter)
       print("mqtt counter sent")
       client.loop(2)
