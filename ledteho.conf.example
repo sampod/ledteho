@@ -10,5 +10,6 @@ counterfile = /ramdisk/tehocounter.txt
 [mqtt]
 address = 192.168.1.1
 ledtehotopic = ledteho/sensor/power/state
+ledtehomediantopic = ledteho/sensor/powermedian/state
 ledtehocountertopic = ledteho/sensor/counter/state
 
