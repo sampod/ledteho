@@ -5,6 +5,7 @@ powercap = 99
 interval = 10
 decimals = 3
 [files]
+writetofile = 0
 powerfile = /tmp/teho.txt
 counterfile = /tmp/tehocounter.txt
 [mqtt]
