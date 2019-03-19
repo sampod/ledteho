@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 import configparser
-import RPi.GPIO as GPIO
+import os
 import statistics
 import time
-import os
+
 import paho.mqtt.client as mqtt
+import RPi.GPIO as GPIO
 
 # initialize config
 config = configparser.ConfigParser()
 config.read("ledteho.conf")
-#read variables from config
-ledpin = config.getint('general', 'gpio')
+# read variables from config
+ldrpin = config.getint('general', 'gpio')
 meter_constant = config.getint('general', 'meter_constant')
 powercap = config.getint('general', 'powercap')
 sleeptime = config.getint('general', 'interval')
 decimals = config.getint('general', 'decimals')
+writetofilevar = config.getint('files', 'writetofile')
 tehofile = config.get("files", "powerfile")
 counterfile = config.get("files", "counterfile")
 mqttaddress = config.get("mqtt", "address")
@@ -32,20 +34,19 @@ power = 0
 powerlist = []
 difference = 0
 
-# files
+# GPIO [ldrpin] set up as input, pulled down to avoid false detection.
+# Automationphat may also be used pinout -> https://pinout.xyz/pinout/automation_phat
+# Automation phat input connected to LDR with a paraller resistor
+# of ~40 kohm. Or you can use for exaple pre-built arduino LDR-module wired
+# directly to RPi GPIO.
+GPIO.setup(ldrpin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
-# GPIO [ledpin] set up as input, pulled down to avoid false detection.
-# GPIO [ledpin] connected to automationPhat input 1
-# automation phat input 1 connected to LDR with a paraller resistor
-# of ~40 kohm. Or you can use for exaple pre-built arduino LDR-module.
-GPIO.setup(ledpin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-
-# routine to calculate power and increase energy counter when pulse
-# is detected
+# Routine to calculate power and increase energy counter when pulse
+# is detected.
 def pulsecallback(channel):
     global lastSignal, lastTime, power, powerlist, difference, counter
     seconds_in_an_hour = 3600
-    print ("falling edge detected on", ledpin)
+    print ("falling edge detected on", ldrpin)
     newTime = time.time()
     difference = newTime - lastTime
     power = seconds_in_an_hour / (difference * meter_constant)
@@ -56,7 +57,7 @@ def pulsecallback(channel):
     counter = int(counter) + 1
     print (counter)
 
-# routine to write stuff to file
+# Routine to write stuff to file
 # called in main loop on regular basis!
 def writetofile():
     global power, counter
@@ -64,7 +65,7 @@ def writetofile():
 
     teho = round(power, decimals)
 
-    print ("writing...")
+    print ("files writing...")
 
     with open(tehofile, "w") as f:
         f.write(str(teho))
@@ -73,6 +74,8 @@ def writetofile():
         f.write(str(counter))
 
 # MQTT-sending
+# Calculate median for measured power values and send median and latest values
+# and counter value to MQTT broker
 def mqttsend():
     global power, powerlist, counter
     teho = round(power, decimals)
@@ -95,7 +98,7 @@ def mqttsend():
       client.disconnect()
       client.loop(2)
     except:
-      print("conn. error")
+      print("MQTT connetion error")
 
 # counter initialization
 
@@ -107,24 +110,25 @@ if exists:
 else:
     counter = 0
 
-# when a falling edge is detected on port [ledpin],
+# GPIO initialization:
+# When a falling edge is detected on port [ldrpin],
 # the function pulsecallback will be run
 # try adjusting bouncetime if you get ghost signals
 # also try adjusting paraller/series resistor and reading
-# input status with 
+# input status with
 # $ GPIO READALL
-GPIO.add_event_detect(ledpin, GPIO.FALLING, callback=pulsecallback, bouncetime=300)
+GPIO.add_event_detect(ldrpin, GPIO.FALLING, callback=pulsecallback, bouncetime=300)
 
 # main program loop.
-# call mqtt sending and optinally writing to file at interval configured
+# Call mqtt sending and optinally writing to file at interval configured
 # in sleep function
-print ("waiting for pulses in GPIO", ledpin)
+print ("waiting for pulses in GPIO", ldrpin)
 print ("Use ctrl+c to interrupt")
 try:
     while True:
         time.sleep(sleeptime)
-# uncomment to enable writing to files
-#        writetofile()
+        if writetofilevar == 1:
+          writetofile()
         mqttsend()
 
 except KeyboardInterrupt:
