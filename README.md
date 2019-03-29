@@ -10,6 +10,12 @@ Example fstab line for ramdisk:
 
 `tmpfs       /ramdisk tmpfs  defaults,size=20M,gid=33   0 0`
 
+## Suggested hardware
+- Raspberry pi Zero W
+- 3.3 V Arduino LDR comparator board
+- Maybe some wires to extend LDR out of the board and to connect the board to Raspberry
+- Power supply for Raspi
+
 ## Todo
 - Improve averaging function
 - Make config handling better
